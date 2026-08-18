@@ -1,9 +1,16 @@
 {
   "name": "Shadow Slave Remote Runtime",
-  "build": "v3.4-gameplay-correctness",
+  "build": "v3.4.2-microaudit-ai2",
   "canon_records": 5822,
-  "canon_raw_sha256": "b8e6e14c0002f4944ae590bc7793487d4ae643a7c642178a08345a5aa31b2cee",
+  "canon_raw_sha256": "aa0d6dd2393bd4140c181891a5ae92d80cffd741515c6f52f1f1d9af8ef93319",
   "save_isolation": "SS_RED_V3",
-  "runtime_version": "3.4",
-  "dataset_version": "3.0"
+  "runtime_version": "3.4.2",
+  "dataset_version": "3.4.2",
+  "canon_director_version": "2.1",
+  "features": [
+    "microaudit_v1",
+    "retrieval_v5",
+    "behavior_examples",
+    "secondary_canon_director_ai2"
+  ]
 }
