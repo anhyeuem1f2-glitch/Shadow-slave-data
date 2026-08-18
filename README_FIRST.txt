@@ -1,0 +1,1 @@
+1) Giải nén folder ShadowSlave_v3_REMOTE_DEPLOY đè lên folder cùng tên trong repo local. 2) Commit/push lên GitHub và chờ Cloudflare deploy success. 3) Import lại CARD/(RED) Shadow Slave.json một lần vì v3.4 thay đổi MVU/Genesis/EJS phía card.
