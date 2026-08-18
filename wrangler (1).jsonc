@@ -1,8 +1,0 @@
-{
-  "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "shadow-slave-data",
-  "compatibility_date": "2026-08-18",
-  "assets": {
-    "directory": "./ShadowSlave_v3_REMOTE_DEPLOY"
-  }
-}
