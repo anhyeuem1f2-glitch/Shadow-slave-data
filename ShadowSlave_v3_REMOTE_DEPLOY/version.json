@@ -1,7 +1,9 @@
 {
   "name": "Shadow Slave Remote Runtime",
-  "build": "v3.3-remote-db",
+  "build": "v3.4-gameplay-correctness",
   "canon_records": 5822,
   "canon_raw_sha256": "b8e6e14c0002f4944ae590bc7793487d4ae643a7c642178a08345a5aa31b2cee",
-  "save_isolation": "SS_RED_V3"
+  "save_isolation": "SS_RED_V3",
+  "runtime_version": "3.4",
+  "dataset_version": "3.0"
 }

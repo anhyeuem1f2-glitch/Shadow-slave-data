@@ -8,11 +8,13 @@ HOST[INSTANCE]=true;
 
 const DB_NAME='ShadowSlave_RED_CanonDB_v3';
 const DB_VERSION=1;
-const BUILD='v3.3-remote-db';
+const BUILD='v3.4-gameplay-correctness';
 const MANIFEST_URL=new URL('../data/manifest.json', import.meta.url).href;
 const CAT_CACHE=new Map();
 let seedPromise=null;
 let activeManifest=null;
+function currentSourceHash(){return activeManifest?.raw_sha256||HOST.ShadowSlaveCanonDBStatus?.source_hash||null;}
+
 
 HOST.ShadowSlaveCanonDBStatus={
   state:'BOOT',
@@ -78,13 +80,25 @@ async function seed(){
   if(seedPromise)return seedPromise;
   seedPromise=(async()=>{
     HOST.ShadowSlaveCanonDBStatus.state='CHECKING_REMOTE';
-    const m=await fetchManifest();
+    const existing=await getMeta('source_hash').catch(()=>null);
+    const existingCount=await getMeta('record_count').catch(()=>null);
+    const existingBuild=await getMeta('build').catch(()=>null);
+    let m=null;
+    try{m=await fetchManifest();}
+    catch(e){
+      if(existing?.value&&Number(existingCount?.value)>0){
+        activeManifest={schema:'shadow-slave-canondb-manifest-v1',build:existingBuild?.value||'cached',record_count:Number(existingCount.value),raw_sha256:String(existing.value),offline_cached:true};
+        HOST.ShadowSlaveCanonDBStatus.state='READY_CACHED_OFFLINE';
+        HOST.ShadowSlaveCanonDBStatus.source_hash=String(existing.value);
+        HOST.ShadowSlaveCanonDBStatus.record_count=Number(existingCount.value);
+        HOST.ShadowSlaveCanonDBStatus.last_error=String(e?.message||e);
+        return {seeded:false,offline_cached:true,record_count:Number(existingCount.value),source_hash:String(existing.value)};
+      }
+      throw e;
+    }
     activeManifest=m;
     HOST.ShadowSlaveCanonDBStatus.source_hash=m.raw_sha256;
     HOST.ShadowSlaveCanonDBStatus.expected_records=Number(m.record_count)||0;
-
-    const existing=await getMeta('source_hash').catch(()=>null);
-    const existingCount=await getMeta('record_count').catch(()=>null);
     if(existing?.value===m.raw_sha256 && Number(existingCount?.value)===Number(m.record_count)){
       HOST.ShadowSlaveCanonDBStatus.state='READY';
       HOST.ShadowSlaveCanonDBStatus.record_count=Number(m.record_count);
@@ -173,6 +187,8 @@ async function retrieve(opts={}){
   const mechTerms=/rank|class|core|aspect|flaw|true name|memory|echo|shadow|essence|ability|domain|sorcery|weave|nightmare|spell|soul|cấp|lõi|khuyết|tên thật|ký ức|tiếng vọng|bóng|tinh chất|kỹ năng|ác mộng/i.test(qMechanic);
   if(mechTerms)for(const r of await category('CANON_MECHANIC')){if(r.volume&&Number(r.volume)>volume)continue;const ms=matchScore(r,qMechanic);if(ms<=0)continue;const rv=Number(r.volume||0);const temporal=rv?((rv===volume)?8:Math.max(-8,4-(volume-rv)*1.25)):5;add(map,r,74+temporal+Math.min(15,ms*30),'mechanic_match');}
   if(mechTerms)for(const r of await category('CANON_PROGRESSION')){if(!r.volume||Number(r.volume)===volume)add(map,r,68,'progression_support');}
+  const mandatoryMechanics=Array.isArray(opts.mandatoryMechanics)?opts.mandatoryMechanics.filter(Boolean):[];
+  if(mandatoryMechanics.length){for(const r of await category('CANON_MECHANIC')){const hay=nrm((r.name||'')+' '+((r.keys||[]).join(' ')));for(const term of mandatoryMechanics){const tn=nrm(term);if(tn&&hay.includes(tn)){add(map,r,99,'state_required_mechanic');break;}}}}
   for(const cat of ['CANON_LOCATION','CANON_EVENT','CANON_WORLD','CANON_FACTION','CANON_MISC']){for(const r of await category(cat)){if(r.volume&&Number(r.volume)!==volume)continue;let s=matchScore(r,qfull);if(r.chapter_start&&r.chapter_end&&r.chapter_start<=chapter&&chapter<=r.chapter_end)s=Math.max(s,.9);if(s>.12)add(map,r,55+Math.min(20,s*25),cat.toLowerCase()+'_match');}}
   const sorted=Array.from(map.values()).sort((a,b)=>b.score-a.score);
   const categoryLimits={CANON_CHAPTER_EVIDENCE:1,CANON_SCENE_EVIDENCE:3,CANON_CHARACTER_TEMPORAL:5,CANON_MECHANIC:4,CANON_PROGRESSION:1,CANON_LOCATION:3,CANON_EVENT:2,CANON_WORLD:2,CANON_FACTION:1,CANON_MISC:2,CANON_HIDDEN:1};
@@ -181,10 +197,11 @@ async function retrieve(opts={}){
     const hard=x.score>=90;if(!hard&&used+block.length>maxChars)continue;blocks.push(block);used+=block.length;usedCat[r.category]++;selected.push({id:r.record_id,name:r.name,category:r.category,score:x.score,reason:x.reason});
   }
   const timeMeta=routerMeta.map(r=>({record_id:r.record_id,time_slot:r.time_slot,sim_time_start:r.sim_time_start,sim_time_end:r.sim_time_end,detail_authority:r.detail_authority}));
-  const context=`<SS_CANON_PACKET chapter="${chapter}" volume="V${volume}" source_hash="${SOURCE_HASH.slice(0,12)}">\n<PROVENANCE_RULE>Only records below may support original-canon claims this turn. INDEX_ONLY metadata is never narrative authority. SAVE/roleplay facts must not be promoted to canon.</PROVENANCE_RULE>\n${blocks.join('\n')}\n</SS_CANON_PACKET>`;
-  return {context,selected,router_meta:timeMeta,chars:context.length,chapter,volume,source_hash:SOURCE_HASH};
+  const sh=currentSourceHash();
+  const context=`<SS_CANON_PACKET chapter="${chapter}" volume="V${volume}" source_hash="${sh?sh.slice(0,12):'UNKNOWN'}">\n<PROVENANCE_RULE>Only records below may support original-canon claims this turn. INDEX_ONLY metadata is never narrative authority. SAVE/roleplay facts must not be promoted to canon.</PROVENANCE_RULE>\n${blocks.join('\n')}\n</SS_CANON_PACKET>`;
+  return {context,selected,router_meta:timeMeta,chars:context.length,chapter,volume,source_hash:sh};
 }
-async function stats(){await seed();const db=await openDb();try{const tx=db.transaction(['records','meta'],'readonly');const count=await idbReq(tx.objectStore('records').count());return {ready:true,count,source_hash:SOURCE_HASH,build:BUILD};}finally{db.close();}}
+async function stats(){await seed();const db=await openDb();try{const tx=db.transaction(['records','meta'],'readonly');const count=await idbReq(tx.objectStore('records').count());return {ready:true,count,source_hash:currentSourceHash(),manifest_url:MANIFEST_URL,db_name:DB_NAME,build:BUILD,state:HOST.ShadowSlaveCanonDBStatus?.state||'READY'};}finally{db.close();}}
 async function clear(){const db=await openDb();try{let tx=db.transaction(['records','meta'],'readwrite');tx.objectStore('records').clear();tx.objectStore('meta').clear();await txDone(tx);CAT_CACHE.clear();seedPromise=null;}finally{db.close();}return true;}
 HOST.ShadowSlaveCanonDB={
   ready:seed,

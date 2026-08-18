@@ -1,7 +1,7 @@
 // Shadow Slave v3.3 remote runtime entrypoint.
 const HOST=(typeof window!=='undefined')?(window.parent||window):globalThis;
-const BUILD='v3.3-remote-db';
-const INSTANCE='__SHADOW_SLAVE_REMOTE_RUNTIME_V33__';
+const BUILD='v3.4-gameplay-correctness';
+const INSTANCE='__SHADOW_SLAVE_REMOTE_RUNTIME_V34__';
 
 if(!HOST[INSTANCE]){
   HOST[INSTANCE]=true;
@@ -20,6 +20,9 @@ if(!HOST[INSTANCE]){
 
   HOST.ShadowSlaveRemoteRuntimeReady=(async()=>{
     try{
+      HOST.ShadowSlaveRemoteRuntimeStatus.state='LOADING_RULES';
+      await load('./runtime/ShadowSlave_Gameplay_Rules_v34.js');
+
       HOST.ShadowSlaveRemoteRuntimeStatus.state='LOADING_AUTODB';
       await load('./runtime/ShadowSlave_AutoDB_v3.js');
 
