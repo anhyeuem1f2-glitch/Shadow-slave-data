@@ -1,0 +1,28 @@
+{
+  "schema": "shadow-slave-canondb-manifest-v1",
+  "build": "v3.3-remote-db",
+  "database": "ShadowSlave_RED_CanonDB_v3",
+  "record_count": 5822,
+  "raw_sha256": "b8e6e14c0002f4944ae590bc7793487d4ae643a7c642178a08345a5aa31b2cee",
+  "raw_bytes": 18381807,
+  "files": {
+    "gzip": {
+      "path": "canon.records.v3.jsonl.gz",
+      "sha256": "87b43b269d1bb80b2325c2608e574154a39727ea8f2c98dd3a89aaa46e6b7309",
+      "bytes": 1337251,
+      "encoding": "gzip"
+    },
+    "plain_fallback": {
+      "path": "canon.records.v3.jsonl",
+      "sha256": "b8e6e14c0002f4944ae590bc7793487d4ae643a7c642178a08345a5aa31b2cee",
+      "bytes": 18381807,
+      "encoding": "identity"
+    }
+  },
+  "policy": {
+    "immutable_during_play": true,
+    "save_is_separate": true,
+    "save_isolation": "SS_RED_V3",
+    "index_only_is_not_narrative_authority": true
+  }
+}
